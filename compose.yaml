@@ -1,5 +1,6 @@
 services:
   frontend:
+    container_name: frontend
     build:
       context: ../deptron-frontend
       dockerfile: Dockerfile
@@ -8,7 +9,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    container_name: app-nginx
+    container_name: nginx
     image: nginx:1.27-alpine
     ports:
       - "${HTTP_PORT-80}:80"
@@ -23,7 +24,7 @@ services:
     restart: unless-stopped
 
   ssl:
-    container_name: app-certbot
+    container_name: ssl
     image: certbot/certbot:v2.11.0
     entrypoint: sh
     command: -c "while :; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'docker kill -s HUP app-nginx'; sleep 12h; done"
