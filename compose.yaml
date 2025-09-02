@@ -1,0 +1,39 @@
+services:
+  frontend:
+    container_name: app-frontend
+    build:
+      context: ../deptron-frontend
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  nginx:
+    container_name: app-nginx
+    image: nginx:1.27-alpine
+    ports:
+      - "${HTTP_PORT-80}:80"
+      - "${HTTPS_PORT-443}:443"
+    # During the initial setup, mount the HTTP-only config file; after obtaining the certificate, switch to nginx.conf
+    volumes:
+      - ../deptron-nginx/nginx.http-only.conf:/etc/nginx/nginx.conf:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  ssl:
+    container_name: app-certbot
+    image: certbot/certbot:v2.11.0
+    entrypoint: sh
+    command: -c "while :; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'docker kill -s HUP app-nginx'; sleep 12h; done"
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  certbot-etc:
+  certbot-www:

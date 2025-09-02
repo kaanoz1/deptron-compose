@@ -1,0 +1,23 @@
+NOTE: Make sure nginx.http-only.conf is mounted before running these steps.
+
+
+cd ~/deptron-dev/deptron-compose
+
+# 1) Start nginx + frontend with HTTP-only config
+docker compose up -d nginx frontend
+docker compose logs -f nginx
+
+# 2) Webroot health check (optional)
+docker compose run --rm --entrypoint "" ssl \
+  sh -c "mkdir -p /var/www/certbot/.well-known/acme-challenge && echo OK > /var/www/certbot/.well-known/acme-challenge/health.txt"
+
+curl http://deptronrobotics.com/.well-known/acme-challenge/health.txt  # You should see "OK"
+
+# 3) Obtain a SAN certificate for all domains
+docker compose run --rm --entrypoint "" ssl \
+  certbot certonly --webroot -w /var/www/certbot \
+  -d deptronrobotics.com \
+  -d www.deptronrobotics.com \
+  -d deptron.com.tr \
+  -d www.deptron.com.tr \
+  --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email
